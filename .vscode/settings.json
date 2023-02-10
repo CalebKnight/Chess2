@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "square.h": "c",
+        "typeinfo": "c",
+        "board.h": "c",
+        "list.h": "c",
+        "piece.h": "c",
+        "stdio.h": "c",
+        "game.h": "c",
+        "moves.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "disabled"
+}
