@@ -15,6 +15,7 @@ typedef struct Move
 List **GetMoves(struct Square **board, int x, int y);
 void PrintDirection(List *direction);
 void PrintDirections(List **directions);
+void PrintMove(Move *move);
 void GetAllDirections(List **directions, struct Square **board, int x, int y);
 void GetTop(List *direction, struct Square **board, int x, int y, int i);
 void GetBottom(List *direction, struct Square **board, int x, int y, int i);

@@ -1,5 +1,5 @@
-chess: main.o square.o board.o piece.o moves.o list.o game.o
-	$(CC) main.o square.o board.o piece.o moves.o list.o game.o -o chess 
+chess: main.o square.o board.o piece.o moves.o list.o game.o legal.o
+	$(CC) main.o square.o board.o piece.o moves.o list.o game.o legal.o -o chess -L . -lpthread
 
 main.o: main.c main.h
 	$(CC) -c -Wall -pedantic -Werror main.c -o main.o
@@ -22,5 +22,27 @@ list.o: list.c list.h
 game.o: game.c game.h
 	$(CC) -c -Wall -pedantic -Werror game.c -o game.o
 
+legal.o: legal.c legal.h
+	$(CC) -c -Wall -pedantic -Werror legal.c -o legal.o
+
+
+
+
+lpthread.o: lpthread.c lpthread.h
+	gcc -O -c lpthread.c
+
+
 clean:
-	rm -f *.o chess
+	rm -f chess *.o *.a *.gch
+
+
+
+
+
+
+
+
+
+
+
+

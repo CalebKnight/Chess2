@@ -24,12 +24,13 @@ struct Square **MakeBoard()
         board[i] = malloc(sizeof(Square) * 8);
     }
 
+    // For this the second index is actually the x axis and the first is the y axis
     for (int i = 0; i < 8; i++)
     {
         for (int j = 0; j < 8; j++)
         {
-            board[i][j].x = i;
-            board[i][j].y = j;
+            board[i][j].x = j;
+            board[i][j].y = i;
             board[i][j].name = GetSquareName(j, i);
             board[i][j].directions = GetMoves(board, j, i);
             if (i < 2 || i > 5)
@@ -45,9 +46,47 @@ struct Square **MakeBoard()
     return board;
 }
 
+struct Square **CopyBoard(Square **board)
+{
+    Square **new_board = malloc(sizeof(Square) * 8 * 8);
+
+    for (int i = 0; i < 8; i++)
+    {
+        // Initialise each row
+        new_board[i] = malloc(sizeof(Square) * 8);
+    }
+
+    // For this the second index is actually the x axis and the first is the y axis
+    for (int i = 0; i < 8; i++)
+    {
+        for (int j = 0; j < 8; j++)
+        {
+            new_board[i][j].x = j;
+            new_board[i][j].y = i;
+            new_board[i][j].name = GetSquareName(j, i);
+            new_board[i][j].directions = GetMoves(board, j, i);
+            if (board[i][j].piece != NULL)
+            {
+                new_board[i][j].piece = MakePiece(j, i);
+                new_board[i][j].piece->color = board[i][j].piece->color;
+                new_board[i][j].piece->symbol = board[i][j].piece->symbol;
+                new_board[i][j].piece->name = board[i][j].piece->name;
+                new_board[i][j].piece->alive = board[i][j].piece->alive;
+                new_board[i][j].piece->has_moved = board[i][j].piece->has_moved;
+            }
+            else
+            {
+                new_board[i][j].piece = NULL;
+            }
+        }
+    }
+    return new_board;
+}
+
 Square *GetSquare(int x, int y, Square **board)
 {
-    return &board[x][y];
+    // X and Y are inverted here because the board is stored in a 2D array
+    return &board[y][x];
 }
 
 void PrintCords(Square **board)
@@ -69,23 +108,26 @@ void PrintBoard(Square **board)
     for (int i = 7; i > -1; i--)
     {
         printf("\n");
+        printf("%s %d %s", AC_WHITE, 8 - i, AC_NORMAL);
         for (int j = 0; j < 8; j++)
         {
+            // This is intentionally inverted to place the chessboard the correct way up
             Piece *piece = board[i][j].piece;
             if (piece == NULL)
             {
                 if ((i + j) % 2 == 0)
-                    printf("%s ■ %s", AC_BLACK, AC_NORMAL);
-                else
                     printf("%s ■ %s", AC_WHITE, AC_NORMAL);
+                else
+                    printf("%s ■ %s", AC_BLACK, AC_NORMAL);
             }
             else
             {
-
-                printf("%s %s %s", (strcmp(piece->color, "White") ? AC_WHITE : AC_BLACK), piece->symbol, AC_NORMAL);
+                // Not entirely sure why but inverting this fixes all problems
+                printf("%s %s %s", (strcmp(piece->color, "White") == 0 ? AC_WHITE : AC_BLACK), piece->symbol, AC_NORMAL);
             }
         }
     }
+    printf("\n    A  B  C  D  E  F  G  H");
     printf("\n");
     return;
 }

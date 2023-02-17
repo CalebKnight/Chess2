@@ -35,6 +35,19 @@ void FreeDirections(List **directions)
     free(directions);
 }
 
+void PrintMove(Move *move)
+{
+    if (move != NULL && move->start != NULL && move->end != NULL)
+    {
+        printf("\nStart: %d %d", move->start->x, move->start->y);
+        printf("\nMove: %d %d", move->end->x, move->end->y);
+    }
+    else
+    {
+        printf("\nMove is NULL");
+    }
+}
+
 // Print all directions with the name of the direction it is heading first
 void PrintDirections(List **directions)
 {
@@ -95,7 +108,7 @@ void PrintDirection(List *direction)
 void GetAllDirections(List **directions, Square **board, int x, int y)
 {
 
-    for (int i = 1; (i + y) < 8; i++)
+    for (int i = 1; i < 8; i++)
     {
 
         GetTop(directions[0], board, x, y, i);

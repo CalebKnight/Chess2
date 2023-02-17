@@ -21,6 +21,7 @@ typedef struct LinkedList
 {
     Node *head;
     Node *tail;
+    int size;
 } List;
 /*Creates a list with empty pointers to be initialised later*/
 List *CreateList()
@@ -28,6 +29,7 @@ List *CreateList()
     List *list = (List *)malloc(sizeof(List));
     list->head = NULL;
     list->tail = NULL;
+    list->size = 0;
     return list;
 }
 
@@ -79,12 +81,14 @@ void AppendList(List *list, Node *node)
     {
         SetHead(list, node);
         SetTail(list, node);
+        list->size++;
     }
     else
     {
         SetNext(list->tail, node);
         SetPrev(node, list->tail);
         SetTail(list, node);
+        list->size++;
     }
 }
 

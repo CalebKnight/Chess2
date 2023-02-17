@@ -99,7 +99,7 @@ char *GetIcon(int x, int y)
 
 char *GetColor(int y)
 {
-    if (y == 1 || y == 0)
+    if (y == 6 || y == 7)
     {
         return ("Black");
     }

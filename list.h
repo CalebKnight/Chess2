@@ -10,6 +10,7 @@ typedef struct LinkedList
 {
     Node *head;
     Node *tail;
+    int size;
 } List;
 Node *CreateNode();
 List *CreateList();
