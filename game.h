@@ -7,13 +7,14 @@
 #include "moves.h"
 
 void PlayMove(struct Square **board, struct Move *move);
+void ReverseMove(struct Square **board, struct Move *move);
 void RunGame(struct Square **board);
 void PrintMoves(List *moves, Square *square);
-Move *RecurseCalculate(struct Square **board, Move *firstMove, int depth, int count, char *color);
+int RecurseCalculate(struct Square **board, int depth, int count, char *color, int score);
+Move *GetMove(struct Square **board, Move *firstMove, int depth, int count, char *color);
 Square **GetAllPieces(struct Square **board, char *color);
 List *GetAllPawnMoves(struct Square **board, Square *square);
 void AddBlackPawnMoves(List **directions, List *legalMoves);
 void AddWhitePawnMoves(List **directions, List *legalMoves);
-void Cycle(struct Square **board, Square square);
-void *GetUserInput(void *arg);
+int GetUserInput();
 #endif

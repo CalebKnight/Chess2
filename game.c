@@ -18,33 +18,14 @@ typedef struct thread_data
 void RunGame(struct Square **board)
 {
     int i = 0;
-    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-
-    pthread_t userInput;
-    thread_data tdata = {0};
 
     // Assign a thread to user input so they can always break out of the loop
     while (1)
     {
-        // Lock the mutex so that the user input thread can't access the shared data
-        pthread_mutex_lock(&mutex);
-        // Create the thread
-        pthread_create(&userInput, NULL, GetUserInput, &tdata);
-        // Unlock the mutex so that the user input thread can access the shared data
-        pthread_mutex_unlock(&mutex);
-        // Wait for the thread to finish
-        pthread_join(userInput, NULL);
-        // If the user input thread has set the result to 1, then break out of the loop
-        if (tdata.result == 1)
-        {
-            break;
-        }
-        // If the user input thread hasn't set the result to 1, then continue the loop
 
         if (i % 2 == 0)
         {
-            Move *move;
-            move = RecurseCalculate(board, NULL, 1, 0, "White");
+            Move *move = GetMove(board, NULL, 1, 0, "White");
             PrintMove(move);
             PlayMove(board, move);
             PrintBoard(board);
@@ -52,111 +33,105 @@ void RunGame(struct Square **board)
         }
         else
         {
-            Move *move;
-            move = RecurseCalculate(board, NULL, 1, 0, "Black");
+            Move *move = GetMove(board, NULL, 1, 0, "Black");
             PrintMove(move);
             PlayMove(board, move);
             PrintBoard(board);
             free(move);
         }
-
+        if (GetUserInput() == 1)
+        {
+            break;
+        }
         i++;
     }
-    pthread_mutex_destroy(&mutex);
 }
 
 // This will be the function that will be called by the thread
-void *GetUserInput(void *arg)
+int GetUserInput()
 {
-    thread_data *tdata = (thread_data *)arg;
+    int val = 0;
     printf("Enter e to exit: ");
     char *input = (char *)malloc(sizeof(char) * 10);
     scanf("%s", input);
     if (strcmp(input, "e") == 0)
     {
-        tdata->result = 1;
+        val = 1;
     }
     free(input);
-    return NULL;
+    return val;
+}
+
+Move *GetMove(struct Square **board, Move *firstMove, int depth, int count, char *color)
+{
+    Move *bestMove = malloc(sizeof(Move));
+    int score = 0;
+    Square **pieces = GetAllPieces(board, color);
+    int i = 0;
+    while (pieces[i] != NULL)
+    {
+        List *moves = GetAllPawnMoves(board, pieces[i]);
+        Node *node = moves->head;
+        while (node != NULL)
+        {
+            Move *move = malloc(sizeof(Move));
+            move->start = pieces[i];
+            move->end = (Square *)node->data;
+            PlayMove(board, move);
+            int newScore = RecurseCalculate(board, depth, count + 1, color, 0);
+            ReverseMove(board, move);
+            if (newScore >= score)
+            {
+                bestMove->start = pieces[i];
+                bestMove->end = move->end;
+            }
+            free(move);
+            node = node->next;
+        }
+        FreeList(moves);
+        i++;
+    }
+    free(pieces);
+    return bestMove;
 }
 
 // Will need to look at all available pieces, generate all possible moves, and then fire off recursive chains for each and scoring each one
-Move *RecurseCalculate(struct Square **board, Move *firstMove, int depth, int count, char *color)
+int RecurseCalculate(struct Square **board, int depth, int count, char *color, int score)
 {
-    Move *bestMove = (Move *)malloc(sizeof(Move));
     if (count == depth)
     {
-        free(bestMove);
-        return firstMove;
+        return score;
     }
-    Square **allySquares = GetAllPieces(board, color);
-    List *moves = CreateList();
-    for (int i = 0; i < 32; i++)
+    else
     {
-
-        Square *allySquare = allySquares[i];
-
-        if (allySquare == NULL)
+        Square **pieces = GetAllPieces(board, color);
+        int i = 0;
+        while (pieces[i] != NULL)
         {
-            continue;
-        }
-        List *legalMoves = GetAllPawnMoves(board, allySquare);
-        if (strcmp(allySquare->piece->name, "Pawn") != 0 || legalMoves->size == 0)
-        {
-            FreeList(legalMoves);
-            continue;
-        }
-
-        Node *node = legalMoves->head;
-        int j = 0;
-        while (node != NULL)
-        {
-            printf("j: %d", j);
-            if (j > 10)
+            List *moves = GetAllPawnMoves(board, pieces[i]);
+            Node *node = moves->head;
+            while (node != NULL)
             {
-                break;
+                Move *move = malloc(sizeof(Move));
+                move->start = pieces[i];
+                move->end = (Square *)node->data;
+                PlayMove(board, move);
+                // Use count variable to invert score for black/white depending on who is evaluating the move
+                int newScore = RecurseCalculate(board, depth, count + 1, color, score);
+                ReverseMove(board, move);
+                free(move);
+                if (newScore > score)
+                {
+                    score = newScore;
+                }
+                node = node->next;
             }
-            Move *move = (Move *)malloc(sizeof(Move));
-            move->start = allySquare;
-            move->end = node->data;
-            Square **newBoard = CopyBoard(board);
-            PlayMove(newBoard, move);
-            if (count == 0)
-            {
-                firstMove = move;
-            }
-            color = (strcmp(color, "White") == 0) ? "Black" : "White";
-            Node *newMove = (Node *)malloc(sizeof(Node));
-            newMove->data = RecurseCalculate(newBoard, firstMove, depth, count + 1, color);
-            AppendList(moves, newMove);
-
-            FreeBoard(newBoard);
-            free(move);
-            j++;
+            FreeList(moves);
+            i++;
         }
-        FreeList(legalMoves);
+        free(pieces);
     }
-    free(allySquares);
-    Node *node = moves->head;
-    while (node != NULL)
-    {
-        bestMove = node->data;
-        if (node->data != NULL)
-        {
-            free(node->data);
-        }
-        node = node->next;
-    }
-
-    FreeList(moves);
-
-    free(moves);
-    // Get all pieces
-    // Get all moves
-    // Recurse
-    // Score
-    // Return best move
-    return (bestMove);
+    return score;
 }
 
 Square **GetAllPieces(struct Square **board, char *color)
@@ -178,28 +153,6 @@ Square **GetAllPieces(struct Square **board, char *color)
     return pieces;
 }
 
-void Cycle(struct Square **board, Square square)
-{
-    if (square.piece == NULL)
-    {
-        return;
-    }
-    List *legalMoves = GetAllPawnMoves(board, &square);
-    Node *node = legalMoves->head;
-    // PrintMoves(legalMoves, &square);
-    while (node != NULL)
-    {
-        Move *move = (Move *)malloc(sizeof(Move));
-        move->start = &square;
-        move->end = node->data;
-        PlayMove(board, move);
-        free(move);
-        break;
-    }
-
-    FreeList(legalMoves);
-}
-
 void PrintMoves(List *moves, Square *square)
 {
     Node *node = moves->head;
@@ -214,17 +167,30 @@ void PrintMoves(List *moves, Square *square)
 
 void PlayMove(struct Square **board, struct Move *move)
 {
-    if (move == NULL || move->start == NULL || move->end == NULL)
-    {
+    if (move == NULL)
         return;
-    }
-
+    else if (move->start == NULL || move->end == NULL)
+        return;
     int x = move->start->x;
     int y = move->start->y;
     int x2 = move->end->x;
     int y2 = move->end->y;
     board[y2][x2].piece = board[y][x].piece;
     board[y][x].piece = NULL;
+}
+
+void ReverseMove(struct Square **board, struct Move *move)
+{
+    if (move == NULL)
+        return;
+    else if (move->start == NULL || move->end == NULL)
+        return;
+    int x = move->start->x;
+    int y = move->start->y;
+    int x2 = move->end->x;
+    int y2 = move->end->y;
+    board[y][x].piece = board[y2][x2].piece;
+    board[y2][x2].piece = NULL;
 }
 
 List *GetAllPawnMoves(struct Square **board, Square *square)
