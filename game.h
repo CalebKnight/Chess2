@@ -14,6 +14,5 @@ Square **GetAllPieces(struct Square **board, char *color);
 List *GetAllPawnMoves(struct Square **board, Square *square);
 void AddBlackPawnMoves(List **directions, List *legalMoves);
 void AddWhitePawnMoves(List **directions, List *legalMoves);
-void Cycle(struct Square **board, Square square);
-void *GetUserInput(void *arg);
+int GetUserInput();
 #endif

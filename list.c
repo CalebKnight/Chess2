@@ -97,6 +97,48 @@ void FreeNode(Node *node)
 {
     free(node);
 }
+
+void FreeNodeData(Node *node)
+{
+    free(node->data);
+}
+
+void FreeAllNodesData(Node *node)
+{
+    if (node->next != NULL)
+    {
+        if (node->next->next != NULL)
+        {
+            FreeAllNodesData(node->next);
+        }
+        else
+        {
+            FreeNodeData(node->next);
+        }
+    }
+    FreeNodeData(node);
+}
+
+void FreeListData(List *list)
+{
+    if (list->head == NULL)
+    {
+    }
+    else if (list->head->next == NULL)
+    {
+        FreeNodeData(list->head);
+    }
+    else if (list->tail->prev == list->head)
+    {
+        FreeNodeData(list->tail);
+        FreeNodeData(list->head);
+    }
+    else
+    {
+        FreeAllNodesData(list->head);
+    }
+}
+
 /*Loop through the list and free each node one by one from memory*/
 void FreeAllNodes(Node *node)
 {
