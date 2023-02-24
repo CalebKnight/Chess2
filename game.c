@@ -25,17 +25,19 @@ void RunGame(struct Square **board)
 
         if (i % 2 == 0)
         {
-            Move *move = RecurseCalculate(board, NULL, 1, 0, "White");
+            Move *move = GetMove(board, NULL, 1, 0, "White");
             PrintMove(move);
             PlayMove(board, move);
             PrintBoard(board);
+            free(move);
         }
         else
         {
-            Move *move = RecurseCalculate(board, NULL, 1, 0, "Black");
+            Move *move = GetMove(board, NULL, 1, 0, "Black");
             PrintMove(move);
             PlayMove(board, move);
             PrintBoard(board);
+            free(move);
         }
         if (GetUserInput() == 1)
         {
@@ -60,80 +62,76 @@ int GetUserInput()
     return val;
 }
 
-// Will need to look at all available pieces, generate all possible moves, and then fire off recursive chains for each and scoring each one
-Move *RecurseCalculate(struct Square **board, Move *firstMove, int depth, int count, char *color)
+Move *GetMove(struct Square **board, Move *firstMove, int depth, int count, char *color)
 {
-    Move *bestMove;
-    if (count == depth)
+    Move *bestMove = malloc(sizeof(Move));
+    int score = 0;
+    Square **pieces = GetAllPieces(board, color);
+    int i = 0;
+    while (pieces[i] != NULL)
     {
-        return firstMove;
-    }
-    Square **allySquares = GetAllPieces(board, color);
-    List *moves = CreateList();
-    for (int i = 0; i < 32; i++)
-    {
-
-        Square *allySquare = allySquares[i];
-
-        if (allySquare == NULL)
-        {
-            continue;
-        }
-        List *legalMoves = GetAllPawnMoves(board, allySquare);
-        if (strcmp(allySquare->piece->name, "Pawn") != 0 || legalMoves->size == 0)
-        {
-            FreeList(legalMoves);
-            continue;
-        }
-
-        Node *node = legalMoves->head;
-        int j = 0;
+        List *moves = GetAllPawnMoves(board, pieces[i]);
+        Node *node = moves->head;
         while (node != NULL)
         {
-            if (j > 10)
+            Move *move = malloc(sizeof(Move));
+            move->start = pieces[i];
+            move->end = (Square *)node->data;
+            PlayMove(board, move);
+            int newScore = RecurseCalculate(board, depth, count + 1, color, 0);
+            ReverseMove(board, move);
+            if (newScore >= score)
             {
-                break;
+                bestMove->start = pieces[i];
+                bestMove->end = move->end;
             }
-            Move *move = (Move *)malloc(sizeof(Move));
-            move->start = allySquare;
-            move->end = node->data;
-            Square **newBoard = CopyBoard(board);
-            PlayMove(newBoard, move);
-            if (count == 0)
-            {
-                firstMove = move;
-            }
-            color = (strcmp(color, "White") == 0) ? "Black" : "White";
-            Node *newMove = (Node *)malloc(sizeof(Node));
-            newMove->data = RecurseCalculate(newBoard, firstMove, depth, count + 1, color);
-            AppendList(moves, newMove);
-
-            FreeBoard(newBoard);
-
-            j++;
+            free(move);
+            node = node->next;
         }
-        FreeList(legalMoves);
+        FreeList(moves);
+        i++;
     }
-    free(allySquares);
-    Node *node = moves->head;
-    while (node != NULL)
+    free(pieces);
+    return bestMove;
+}
+
+// Will need to look at all available pieces, generate all possible moves, and then fire off recursive chains for each and scoring each one
+int RecurseCalculate(struct Square **board, int depth, int count, char *color, int score)
+{
+    if (count == depth)
     {
-        if (node->data != NULL)
-        {
-            bestMove = node->data;
-        }
-        node = node->next;
+        return score;
     }
-
-    FreeListData(moves);
-
-    free(moves);
-    // Get all pieces
-    // Get all moves
-    // Recurse
-    // Score
-    // Return best move
-    return (bestMove);
+    else
+    {
+        Square **pieces = GetAllPieces(board, color);
+        int i = 0;
+        while (pieces[i] != NULL)
+        {
+            List *moves = GetAllPawnMoves(board, pieces[i]);
+            Node *node = moves->head;
+            while (node != NULL)
+            {
+                Move *move = malloc(sizeof(Move));
+                move->start = pieces[i];
+                move->end = (Square *)node->data;
+                PlayMove(board, move);
+                // Use count variable to invert score for black/white depending on who is evaluating the move
+                int newScore = RecurseCalculate(board, depth, count + 1, color, score);
+                ReverseMove(board, move);
+                free(move);
+                if (newScore > score)
+                {
+                    score = newScore;
+                }
+                node = node->next;
+            }
+            FreeList(moves);
+            i++;
+        }
+        free(pieces);
+    }
+    return score;
 }
 
 Square **GetAllPieces(struct Square **board, char *color)
@@ -179,6 +177,20 @@ void PlayMove(struct Square **board, struct Move *move)
     int y2 = move->end->y;
     board[y2][x2].piece = board[y][x].piece;
     board[y][x].piece = NULL;
+}
+
+void ReverseMove(struct Square **board, struct Move *move)
+{
+    if (move == NULL)
+        return;
+    else if (move->start == NULL || move->end == NULL)
+        return;
+    int x = move->start->x;
+    int y = move->start->y;
+    int x2 = move->end->x;
+    int y2 = move->end->y;
+    board[y][x].piece = board[y2][x2].piece;
+    board[y2][x2].piece = NULL;
 }
 
 List *GetAllPawnMoves(struct Square **board, Square *square)
