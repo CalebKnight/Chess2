@@ -10,8 +10,10 @@ typedef struct Piece
 } Piece;
 
 struct Piece *MakePiece(int x, int y);
+struct Piece *CopyPiece(struct Piece *piece);
 char *GetName(int x, int y);
 char *GetIcon(int x, int y);
 char *GetColor(int y);
+int GetScore(Piece *piece, int count, int score);
 void FreePiece(struct Piece *piece);
 #endif

@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include "string.h"
 #include <pthread.h>
+#include <unistd.h>
 
 typedef struct thread_data
 {
@@ -18,24 +19,25 @@ typedef struct thread_data
 void RunGame(struct Square **board)
 {
     int i = 0;
-
-    // Assign a thread to user input so they can always break out of the loop
     while (1)
     {
-
         if (i % 2 == 0)
         {
-            Move *move = GetMove(board, NULL, 1, 0, "White");
+            // When we make a move we need to free the captured piece still due to how the play move function works
+            Move *move = GetMove(board, NULL, 4, 0, "White");
             PrintMove(move);
-            PlayMove(board, move);
+            Piece *capturedPiece = PlayMove(board, move);
+            free(capturedPiece);
             PrintBoard(board);
             free(move);
         }
         else
         {
-            Move *move = GetMove(board, NULL, 1, 0, "Black");
+            // When we make a move we need to free the captured piece still due to how the play move function works
+            Move *move = GetMove(board, NULL, 4, 0, "Black");
             PrintMove(move);
-            PlayMove(board, move);
+            Piece *capturedPiece = PlayMove(board, move);
+            free(capturedPiece);
             PrintBoard(board);
             free(move);
         }
@@ -47,7 +49,7 @@ void RunGame(struct Square **board)
     }
 }
 
-// This will be the function that will be called by the thread
+// Gets user input to see if they want to exit the game
 int GetUserInput()
 {
     int val = 0;
@@ -62,6 +64,9 @@ int GetUserInput()
     return val;
 }
 
+// This function will wrap the recursive function that will calculate the best move
+// It will store which move is the best move and return it based on the aggregated score returned by the recursive function
+
 Move *GetMove(struct Square **board, Move *firstMove, int depth, int count, char *color)
 {
     Move *bestMove = malloc(sizeof(Move));
@@ -70,18 +75,25 @@ Move *GetMove(struct Square **board, Move *firstMove, int depth, int count, char
     int i = 0;
     while (pieces[i] != NULL)
     {
-        List *moves = GetAllPawnMoves(board, pieces[i]);
+        if (strcmp(pieces[i]->piece->name, "Pawn") != 0)
+        {
+            i++;
+            continue;
+        }
+        List *moves = GetAllMoves(board, pieces[i]);
         Node *node = moves->head;
         while (node != NULL)
         {
             Move *move = malloc(sizeof(Move));
             move->start = pieces[i];
             move->end = (Square *)node->data;
-            PlayMove(board, move);
+            Piece *capturedPiece = PlayMove(board, move);
             int newScore = RecurseCalculate(board, depth, count + 1, color, 0);
-            ReverseMove(board, move);
-            if (newScore >= score)
+            ReverseMove(board, move, capturedPiece);
+            // printf("%d %d %d", newScore, score, newScore >= score);
+            if (newScore >= score || score == 0)
             {
+                // printf("New Score: %d", newScore);
                 bestMove->start = pieces[i];
                 bestMove->end = move->end;
             }
@@ -95,12 +107,39 @@ Move *GetMove(struct Square **board, Move *firstMove, int depth, int count, char
     return bestMove;
 }
 
-// Will need to look at all available pieces, generate all possible moves, and then fire off recursive chains for each and scoring each one
+// This recursive function is the core of the bot
+// It will calculate the score of the board at a certain depth
+// It does this by aggregating the score of possibilities of the next move
+// It will then return the best score
+
+// Implemented Features:
+// 1. Pawn Moves
+// 2. Pawn Captures
+// 3. Score Calculation
+// 4. Recursive Calculation
+// 5. Move Generation
+// 6. Move Execution
+// 7. Move Reversal
+
+// Missing Features:
+// 1. Check
+// 2. Castling
+// 3. En Passant
+// 4. Promotion
+// 5. Stalemate
+// 6. Checkmate
+// 7. Other pieces
+
+// Current Problems:
+// 1. The bot is currently too optimistic, assuming the opponent will make the worst possible move
+// 2. The bot is very materialistic, it will always try to take the opponent's pieces (Technically if depth is high enough this will not be a problem because it will aggregate it into the score if it falls into a trap/ checkmate scenario)
+
 int RecurseCalculate(struct Square **board, int depth, int count, char *color, int score)
 {
+    int aggregateScore = 0;
     if (count == depth)
     {
-        return score;
+        return aggregateScore;
     }
     else
     {
@@ -108,22 +147,26 @@ int RecurseCalculate(struct Square **board, int depth, int count, char *color, i
         int i = 0;
         while (pieces[i] != NULL)
         {
-            List *moves = GetAllPawnMoves(board, pieces[i]);
+            if (strcmp(pieces[i]->piece->name, "Pawn") != 0)
+            {
+                i++;
+                continue;
+            }
+            List *moves = GetAllMoves(board, pieces[i]);
+
             Node *node = moves->head;
             while (node != NULL)
             {
                 Move *move = malloc(sizeof(Move));
                 move->start = pieces[i];
                 move->end = (Square *)node->data;
-                PlayMove(board, move);
+                Piece *capturedPiece = PlayMove(board, move);
                 // Use count variable to invert score for black/white depending on who is evaluating the move
-                int newScore = RecurseCalculate(board, depth, count + 1, color, score);
-                ReverseMove(board, move);
+                int pieceValue = GetScore(capturedPiece, count, score);
+                int moveScore = RecurseCalculate(board, depth, count + 1, color, score + pieceValue);
+                ReverseMove(board, move, capturedPiece);
                 free(move);
-                if (newScore > score)
-                {
-                    score = newScore;
-                }
+                aggregateScore += moveScore;
                 node = node->next;
             }
             FreeList(moves);
@@ -131,9 +174,21 @@ int RecurseCalculate(struct Square **board, int depth, int count, char *color, i
         }
         free(pieces);
     }
-    return score;
+    return aggregateScore;
 }
 
+// Gets every single move a piece can make legally
+List *GetAllMoves(struct Square **board, Square *square)
+{
+    List *moves = CreateList();
+    if (strcmp(square->piece->name, "Pawn") == 0)
+    {
+        GetAllPawnMoves(board, square, moves);
+    }
+    return moves;
+}
+
+// Gets every piece of a certain color
 Square **GetAllPieces(struct Square **board, char *color)
 {
     Square **pieces = (Square **)malloc(sizeof(Square *) * 32);
@@ -153,6 +208,7 @@ Square **GetAllPieces(struct Square **board, char *color)
     return pieces;
 }
 
+// Prints all the moves a piece can make
 void PrintMoves(List *moves, Square *square)
 {
     Node *node = moves->head;
@@ -165,21 +221,36 @@ void PrintMoves(List *moves, Square *square)
     }
 }
 
-void PlayMove(struct Square **board, struct Move *move)
+// Plays a move on the board based on the start and end squares
+Piece *PlayMove(struct Square **board, struct Move *move)
 {
+    Piece *pieceCopy;
     if (move == NULL)
-        return;
+        return NULL;
     else if (move->start == NULL || move->end == NULL)
-        return;
+        return NULL;
     int x = move->start->x;
     int y = move->start->y;
     int x2 = move->end->x;
     int y2 = move->end->y;
+    // If this is a capture, a copy of the piece is returned
+    // It is important this is copied to avoid memory leaks
+    if (board[y2][x2].piece != NULL)
+    {
+        pieceCopy = CopyPiece(board[y2][x2].piece);
+        free(board[y2][x2].piece);
+    }
+    else
+    {
+        pieceCopy = NULL;
+    }
     board[y2][x2].piece = board[y][x].piece;
     board[y][x].piece = NULL;
+    return (pieceCopy);
 }
 
-void ReverseMove(struct Square **board, struct Move *move)
+// Reverses a move on the board based on the start and end squares
+void ReverseMove(struct Square **board, struct Move *move, Piece *capturedPiece)
 {
     if (move == NULL)
         return;
@@ -190,29 +261,36 @@ void ReverseMove(struct Square **board, struct Move *move)
     int x2 = move->end->x;
     int y2 = move->end->y;
     board[y][x].piece = board[y2][x2].piece;
-    board[y2][x2].piece = NULL;
+    if (capturedPiece != NULL)
+    {
+        // Use the captured piece to recreate the piece on the board
+        board[y2][x2].piece = CopyPiece(capturedPiece);
+        free(capturedPiece);
+    }
+    else
+        board[y2][x2].piece = NULL;
 }
 
-List *GetAllPawnMoves(struct Square **board, Square *square)
+// Gets every single move a pawn can make, this is unique for each color because pawns are unidirectional
+void GetAllPawnMoves(struct Square **board, Square *square, List *moves)
 {
-    List *legalMoves = CreateList();
     if (strcmp(square->piece->color, "White") == 0)
     {
-        AddWhitePawnMoves(square->directions, legalMoves);
+        AddWhitePawnMoves(square->directions, moves);
     }
     else
     {
-        AddBlackPawnMoves(square->directions, legalMoves);
+        AddBlackPawnMoves(square->directions, moves);
     }
-    return legalMoves;
 }
 
+// >= can be simplified but I left it like this as it makes it easier to understand logically
 void AddBlackPawnMoves(List **directions, List *legalMoves)
 {
     List *bottom = directions[1];
     List *bottomLeft = directions[6];
     List *bottomRight = directions[7];
-    if (bottom->size == 1)
+    if (bottom->size >= 1)
     {
         Square *square = (Square *)bottom->head->data;
         if (square->piece == NULL)
@@ -226,14 +304,14 @@ void AddBlackPawnMoves(List **directions, List *legalMoves)
     {
         Square *square = (Square *)bottom->head->data;
         Square *square2 = (Square *)bottom->head->next->data;
-        if (square->piece == NULL && square2->piece == NULL)
+        if (square->piece == NULL && square2->piece == NULL && square2->y == 4)
         {
             Node *node = CreateNode();
             node->data = square2;
             AppendList(legalMoves, node);
         }
     }
-    if (bottomLeft->size == 1)
+    if (bottomLeft->size >= 1)
     {
         Square *square = (Square *)bottomLeft->head->data;
         if (square->piece != NULL)
@@ -246,7 +324,7 @@ void AddBlackPawnMoves(List **directions, List *legalMoves)
             }
         }
     }
-    if (bottomRight->size == 1)
+    if (bottomRight->size >= 1)
     {
         Square *square = (Square *)bottomRight->head->data;
         if (square->piece != NULL)
@@ -260,7 +338,7 @@ void AddBlackPawnMoves(List **directions, List *legalMoves)
         }
     }
 }
-
+// >= can be simplified but I left it like this as it makes it easier to understand logically
 void AddWhitePawnMoves(List **directions, List *legalMoves)
 {
     List *top = directions[0];
@@ -280,14 +358,14 @@ void AddWhitePawnMoves(List **directions, List *legalMoves)
     {
         Square *square = (Square *)top->head->data;
         Square *square2 = (Square *)top->head->next->data;
-        if (square->piece == NULL && square2->piece == NULL)
+        if (square->piece == NULL && square2->piece == NULL && square2->y == 3)
         {
             Node *node = CreateNode();
             node->data = square2;
             AppendList(legalMoves, node);
         }
     }
-    if (topLeft->size == 1)
+    if (topLeft->size >= 1)
     {
         Square *square = (Square *)topLeft->head->data;
         if (square->piece != NULL)
@@ -300,7 +378,7 @@ void AddWhitePawnMoves(List **directions, List *legalMoves)
             }
         }
     }
-    if (topRight->size == 1)
+    if (topRight->size >= 1)
     {
         Square *square = (Square *)topRight->head->data;
         if (square->piece != NULL)

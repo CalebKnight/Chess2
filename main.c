@@ -9,9 +9,13 @@
 
 int main(int argc, char const *argv[])
 {
+    // Initialise the board
     struct Square **board = MakeBoard();
+    // Print the fresh board
     PrintBoard(board);
+    // Run the game
     RunGame(board);
+    // Free the board
     FreeBoard(board);
     return 0;
 }

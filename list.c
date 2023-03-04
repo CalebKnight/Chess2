@@ -35,13 +35,11 @@ List *CreateList()
 
 void SetHead(List *list, Node *node)
 {
-
     list->head = node;
 }
 
 void SetTail(List *list, Node *node)
 {
-
     list->tail = node;
 }
 
@@ -119,6 +117,7 @@ void FreeAllNodesData(Node *node)
     FreeNodeData(node);
 }
 
+// Frees both the data and the node itself from memory
 void FreeListData(List *list)
 {
     if (list->head == NULL)

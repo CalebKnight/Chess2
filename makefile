@@ -25,12 +25,8 @@ game.o: game.c game.h
 legal.o: legal.c legal.h
 	$(CC) -c -Wall -pedantic -Werror legal.c -o legal.o
 
-
-
-
 lpthread.o: lpthread.c lpthread.h
 	gcc -O -c lpthread.c
-
 
 clean:
 	rm -f chess *.o *.a *.gch

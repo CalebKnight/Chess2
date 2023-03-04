@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "piece.h"
+#include "string.h"
 
+// Creates a new piece based on the x and y coordinates (This is only used for the initial board)
 struct Piece *MakePiece(int x, int y)
 {
     struct Piece *piece = malloc(sizeof(struct Piece));
@@ -13,6 +15,19 @@ struct Piece *MakePiece(int x, int y)
     return piece;
 }
 
+// Copys a piece's data to a new piece
+struct Piece *CopyPiece(struct Piece *piece)
+{
+    struct Piece *new_piece = malloc(sizeof(struct Piece));
+    new_piece->name = piece->name;
+    new_piece->symbol = piece->symbol;
+    new_piece->color = piece->color;
+    new_piece->alive = piece->alive;
+    new_piece->has_moved = piece->has_moved;
+    return new_piece;
+}
+
+// Gets the name of the piece based on the x and y coordinates
 char *GetName(int x, int y)
 {
     if (y == 1 || y == 6)
@@ -40,6 +55,7 @@ char *GetName(int x, int y)
     return (" ");
 }
 
+// Gets the icon of the piece based on the x and y coordinates (the icon is the unicode character)
 char *GetIcon(int x, int y)
 {
     if (y == 1 || y == 6)
@@ -97,8 +113,10 @@ char *GetIcon(int x, int y)
     return (" ");
 }
 
+// Gets the color of the piece based on the y coordinate
 char *GetColor(int y)
 {
+    // If a piece is on the last two rows, it is black
     if (y == 6 || y == 7)
     {
         return ("Black");
@@ -109,6 +127,49 @@ char *GetColor(int y)
     }
 }
 
+// Gets the score of the piece based on the piece's name, this is flipped using count so that it can be calculated as if it were the other player's turn
+int GetScore(Piece *piece, int count, int score)
+{
+
+    if (piece == NULL)
+    {
+        score += 0;
+    }
+    else
+    {
+        char *name = piece->name;
+        if (strcmp(name, "Pawn") == 0)
+        {
+            score += 1;
+        }
+        if (strcmp(name, "Knight") == 0 || strcmp(name, "Bishop") == 0)
+        {
+            score += 3;
+        }
+        if (strcmp(name, "Rook") == 0)
+        {
+            score += 5;
+        }
+        if (strcmp(name, "Queen") == 0)
+        {
+            score += 9;
+        }
+        if (strcmp(name, "King") == 0)
+        {
+            score += 100;
+        }
+    }
+    if (count % 2 == 0)
+    {
+        return score;
+    }
+    else
+    {
+        return -score;
+    }
+}
+
+// Frees the piece from memory
 void FreePiece(struct Piece *piece)
 {
     if (piece != NULL)

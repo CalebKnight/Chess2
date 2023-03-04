@@ -14,6 +14,7 @@
 #define AC_WHITE "\x1b[37m"
 #define AC_NORMAL "\x1b[m"
 
+// Makes the board and initialises all the squares
 struct Square **MakeBoard()
 {
     Square **board = malloc(sizeof(Square) * 8 * 8);
@@ -46,6 +47,7 @@ struct Square **MakeBoard()
     return board;
 }
 
+// Copies the board and returns a pointer to the new board
 struct Square **CopyBoard(Square **board)
 {
     Square **new_board = malloc(sizeof(Square) * 8 * 8);
@@ -83,12 +85,15 @@ struct Square **CopyBoard(Square **board)
     return new_board;
 }
 
+// Gets the square at the given co-ordinates
 Square *GetSquare(int x, int y, Square **board)
 {
     // X and Y are inverted here because the board is stored in a 2D array
     return &board[y][x];
 }
 
+// Prints the co-ordinates of all the squares
+// Useful when debugging
 void PrintCords(Square **board)
 {
     for (int i = 0; i < 8; i++)
@@ -103,12 +108,13 @@ void PrintCords(Square **board)
     return;
 }
 
+// Prints the board
 void PrintBoard(Square **board)
 {
     for (int i = 7; i > -1; i--)
     {
         printf("\n");
-        printf("%s %d %s", AC_WHITE, 8 - i, AC_NORMAL);
+        printf("%s %d %s", AC_WHITE, i, AC_NORMAL);
         for (int j = 0; j < 8; j++)
         {
             // This is intentionally inverted to place the chessboard the correct way up
@@ -122,7 +128,7 @@ void PrintBoard(Square **board)
             }
             else
             {
-                // Not entirely sure why but inverting this fixes all problems
+                // Not entirely sure why but inverting this fixes a litany of issues
                 printf("%s %s %s", (strcmp(piece->color, "White") == 0 ? AC_WHITE : AC_BLACK), piece->symbol, AC_NORMAL);
             }
         }
@@ -132,6 +138,7 @@ void PrintBoard(Square **board)
     return;
 }
 
+// Frees the board from memory
 void FreeBoard(Square **board)
 {
     for (int i = 0; i < 8; i++)

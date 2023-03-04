@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// Get all possible squares that a piece can move to from each square on the board
 List **GetMoves(Square **board, int x, int y)
 {
     List **directions = (List **)malloc(sizeof(List) * 8);
@@ -17,15 +18,10 @@ List **GetMoves(Square **board, int x, int y)
     }
 
     GetAllDirections(directions, board, x, y);
-
-    // for (int i = 0; i < 8; i++)
-    // {
-    //     PrintDirection(directions[i]);
-    // }
-
     return directions;
 }
 
+// Free all the directions that a square can move to from memory
 void FreeDirections(List **directions)
 {
     for (int i = 0; i < 8; i++)
@@ -35,6 +31,8 @@ void FreeDirections(List **directions)
     free(directions);
 }
 
+// Prints a move with the start square and the end square
+// Move is null will likely occur if the computer cannot generate a move elsewhere
 void PrintMove(Move *move)
 {
     if (move != NULL && move->start != NULL && move->end != NULL)
@@ -49,6 +47,7 @@ void PrintMove(Move *move)
 }
 
 // Print all directions with the name of the direction it is heading first
+// Generally used in debugging to verify that the directions are correct
 void PrintDirections(List **directions)
 {
     for (int i = 0; i < 8; i++)
@@ -104,7 +103,6 @@ void PrintDirection(List *direction)
 // Need to exclude the square that the piece is on
 // Need to make sure that we don't exceed the board
 // Functions provide appropriate name for the direction we are checking
-
 void GetAllDirections(List **directions, Square **board, int x, int y)
 {
 
@@ -121,6 +119,8 @@ void GetAllDirections(List **directions, Square **board, int x, int y)
         GetBottomRight(directions[7], board, x, y, i);
     }
 }
+
+// This could be simplified however this helps with both the logic and readability
 
 void GetTop(List *direction, Square **board, int x, int y, int i)
 {
