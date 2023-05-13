@@ -9,11 +9,7 @@
 #include "string.h"
 #include <pthread.h>
 #include <unistd.h>
-
-typedef struct thread_data
-{
-    int result;
-} thread_data;
+#include "tree.h"
 
 // This will be the while loop that makes the moves for each player
 void RunGame(struct Square **board)
@@ -23,23 +19,13 @@ void RunGame(struct Square **board)
     {
         if (i % 2 == 0)
         {
-            // When we make a move we need to free the captured piece still due to how the play move function works
-            Move *move = GetMove(board, NULL, 4, 0, "White");
-            PrintMove(move);
-            Piece *capturedPiece = PlayMove(board, move);
-            free(capturedPiece);
-            PrintBoard(board);
-            free(move);
+            GameTree *tree = createGameTree(NULL);
+            GetMove(board, tree, 0, 0, "white");
+            printf("Tree size: %d\n", tree->size);
+            freeGameTree(tree);
         }
         else
         {
-            // When we make a move we need to free the captured piece still due to how the play move function works
-            Move *move = GetMove(board, NULL, 4, 0, "Black");
-            PrintMove(move);
-            Piece *capturedPiece = PlayMove(board, move);
-            free(capturedPiece);
-            PrintBoard(board);
-            free(move);
         }
         if (GetUserInput() == 1)
         {
@@ -64,117 +50,31 @@ int GetUserInput()
     return val;
 }
 
-// This function will wrap the recursive function that will calculate the best move
-// It will store which move is the best move and return it based on the aggregated score returned by the recursive function
-
-Move *GetMove(struct Square **board, Move *firstMove, int depth, int count, char *color)
+void *GetMove(struct Square **board, GameTree *tree, int depth, int count, char *color)
 {
-    Move *bestMove = malloc(sizeof(Move));
-    int score = 0;
+
     Square **pieces = GetAllPieces(board, color);
-    int i = 0;
-    while (pieces[i] != NULL)
+    for (int i = 0; i < 32; i++)
     {
-        if (strcmp(pieces[i]->piece->name, "Pawn") != 0)
-        {
-            i++;
-            continue;
-        }
         List *moves = GetAllMoves(board, pieces[i]);
-        Node *node = moves->head;
-        while (node != NULL)
-        {
-            Move *move = malloc(sizeof(Move));
-            move->start = pieces[i];
-            move->end = (Square *)node->data;
-            Piece *capturedPiece = PlayMove(board, move);
-            int newScore = RecurseCalculate(board, depth, count + 1, color, 0);
-            ReverseMove(board, move, capturedPiece);
-            // printf("%d %d %d", newScore, score, newScore >= score);
-            if (newScore >= score || score == 0)
-            {
-                // printf("New Score: %d", newScore);
-                bestMove->start = pieces[i];
-                bestMove->end = move->end;
-            }
-            free(move);
-            node = node->next;
-        }
-        FreeList(moves);
-        i++;
+        //    TODO
+        free(moves->items);
+        free(moves);
     }
     free(pieces);
-    return bestMove;
+    return NULL;
 }
 
-// This recursive function is the core of the bot
-// It will calculate the score of the board at a certain depth
-// It does this by aggregating the score of possibilities of the next move
-// It will then return the best score
+// We will rewrite this function with a tree structure
 
-// Implemented Features:
-// 1. Pawn Moves
-// 2. Pawn Captures
-// 3. Score Calculation
-// 4. Recursive Calculation
-// 5. Move Generation
-// 6. Move Execution
-// 7. Move Reversal
-
-// Missing Features:
-// 1. Check
-// 2. Castling
-// 3. En Passant
-// 4. Promotion
-// 5. Stalemate
-// 6. Checkmate
-// 7. Other pieces
-
-// Current Problems:
-// 1. The bot is currently too optimistic, assuming the opponent will make the worst possible move
-// 2. The bot is very materialistic, it will always try to take the opponent's pieces (Technically if depth is high enough this will not be a problem because it will aggregate it into the score if it falls into a trap/ checkmate scenario)
-
-int RecurseCalculate(struct Square **board, int depth, int count, char *color, int score)
+struct RecurseArgs
 {
-    int aggregateScore = 0;
-    if (count == depth)
-    {
-        return aggregateScore;
-    }
-    else
-    {
-        Square **pieces = GetAllPieces(board, color);
-        int i = 0;
-        while (pieces[i] != NULL)
-        {
-            if (strcmp(pieces[i]->piece->name, "Pawn") != 0)
-            {
-                i++;
-                continue;
-            }
-            List *moves = GetAllMoves(board, pieces[i]);
+    struct Square **board;
+};
 
-            Node *node = moves->head;
-            while (node != NULL)
-            {
-                Move *move = malloc(sizeof(Move));
-                move->start = pieces[i];
-                move->end = (Square *)node->data;
-                Piece *capturedPiece = PlayMove(board, move);
-                // Use count variable to invert score for black/white depending on who is evaluating the move
-                int pieceValue = GetScore(capturedPiece, count, score);
-                int moveScore = RecurseCalculate(board, depth, count + 1, color, score + pieceValue);
-                ReverseMove(board, move, capturedPiece);
-                free(move);
-                aggregateScore += moveScore;
-                node = node->next;
-            }
-            FreeList(moves);
-            i++;
-        }
-        free(pieces);
-    }
-    return aggregateScore;
+void *RecurseCalculate(void *arg)
+{
+    return NULL;
 }
 
 // Gets every single move a piece can make legally
@@ -209,16 +109,9 @@ Square **GetAllPieces(struct Square **board, char *color)
 }
 
 // Prints all the moves a piece can make
-void PrintMoves(List *moves, Square *square)
+void PrintMoves()
 {
-    Node *node = moves->head;
-    while (node != NULL)
-    {
-        printf("Start: %d %d", square->x, square->y);
-        Square *move = (Square *)node->data;
-        printf("Move: %d %d", move->x, move->y);
-        node = node->next;
-    }
+    printf("Undefined");
 }
 
 // Plays a move on the board based on the start and end squares

@@ -7,7 +7,8 @@
         "piece.h": "c",
         "stdio.h": "c",
         "game.h": "c",
-        "moves.h": "c"
+        "moves.h": "c",
+        "stdlib.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
